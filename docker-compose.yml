@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: llamaindex_postgres
+    environment:
+      POSTGRES_USER: llamaindex
+      POSTGRES_PASSWORD: llamaindex123
+      POSTGRES_DB: llamaindex_rag
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llamaindex"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: llamaindex_api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE}
+      - DB_URL=postgresql://llamaindex:llamaindex123@postgres:5432/llamaindex_rag
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+      - CHAT_MODEL=${CHAT_MODEL}
+      - MAX_HISTORY_MESSAGES=${MAX_HISTORY_MESSAGES}
+      - TOP_K_DEFAULT=${TOP_K_DEFAULT}
+      - DEFAULT_TEMPERATURE=${DEFAULT_TEMPERATURE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
