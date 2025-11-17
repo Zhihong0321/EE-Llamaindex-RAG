@@ -1,5 +1,15 @@
 # Local Deployment Pre-Flight Checklist
 
+## Production Deployment
+
+🚀 **Current Production URL**: https://eternalgy-rag-llamaindex-production.up.railway.app
+
+- Platform: Railway
+- API Docs: https://eternalgy-rag-llamaindex-production.up.railway.app/docs
+- Health Check: https://eternalgy-rag-llamaindex-production.up.railway.app/health
+
+---
+
 ## ✅ Prerequisites Verified
 
 ### 1. Docker Installation

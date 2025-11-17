@@ -4,6 +4,14 @@
 
 This guide provides comprehensive instructions for deploying the LlamaIndex RAG API to production environments, with specific focus on Railway deployment and general cloud platform best practices.
 
+### Current Production Deployment
+
+🚀 **Production URL**: https://eternalgy-rag-llamaindex-production.up.railway.app
+
+- **Platform**: Railway
+- **API Docs**: https://eternalgy-rag-llamaindex-production.up.railway.app/docs
+- **Health Check**: https://eternalgy-rag-llamaindex-production.up.railway.app/health
+
 ## Table of Contents
 
 1. [Pre-Deployment Checklist](#pre-deployment-checklist)

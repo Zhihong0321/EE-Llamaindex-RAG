@@ -2,6 +2,13 @@
 
 A conversational RAG (Retrieval-Augmented Generation) API server built with LlamaIndex and FastAPI. This system enables document ingestion, vector-based retrieval, and context-aware conversations with an AI assistant.
 
+## Production Deployment
+
+🚀 **Live Production API**: https://eternalgy-rag-llamaindex-production.up.railway.app
+
+- API Documentation: https://eternalgy-rag-llamaindex-production.up.railway.app/docs
+- Health Check: https://eternalgy-rag-llamaindex-production.up.railway.app/health
+
 ## Features
 
 - **Document Ingestion**: Upload and index text documents for retrieval
