@@ -81,6 +81,7 @@ def initialize_llm(config: Config) -> OpenAI:
         "model": config.chat_model,
         "temperature": config.default_temperature,
         "api_key": config.openai_api_key,
+        "strict": False,  # Disable model validation for custom API endpoints
     }
     
     # Add custom base URL if provided
