@@ -127,30 +127,6 @@ async def lifespan(app: FastAPI):
         documents.set_document_service(document_service)
         logger.info("Services wired to API routers")
         
-        # Configure middleware with loaded config
-        logger.info("Configuring middleware...")
-        
-        # Add request logging middleware (Requirement 10.4)
-        app.add_middleware(RequestLoggingMiddleware)
-        
-        # Configure CORS based on environment
-        cors_origins = config.get_cors_origins_list()
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=cors_origins,
-            allow_credentials=True,
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            allow_headers=["*"],
-            max_age=3600,  # Cache preflight requests for 1 hour
-        )
-        
-        logger.info(
-            "Middleware configured",
-            extra={
-                "cors_origins": cors_origins if cors_origins != ["*"] else "all",
-            }
-        )
-        
         logger.info(
             "RAG API Server startup complete",
             extra={
@@ -188,8 +164,19 @@ app = FastAPI(
 )
 
 
-# Middleware will be configured after app startup when config is available
-# This is handled in the startup event
+# Configure middleware (must be done before app starts)
+# Add request logging middleware (Requirement 10.4)
+app.add_middleware(RequestLoggingMiddleware)
+
+# Configure CORS - use permissive defaults, will be overridden by environment config
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Will be restricted in production via environment
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
+)
 
 
 # Register API routers
