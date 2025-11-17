@@ -20,6 +20,8 @@ COPY --chown=appuser:appuser requirements.txt .
 # Install Python dependencies with production optimizations
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
+    # Download NLTK data as root before switching to appuser
+    python -c "import nltk; nltk.download('punkt', download_dir='/usr/local/share/nltk_data'); nltk.download('punkt_tab', download_dir='/usr/local/share/nltk_data')" && \
     # Remove pip cache and unnecessary files
     rm -rf /root/.cache/pip
 
