@@ -12,6 +12,7 @@ from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.llms import ChatMessage
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.llms.openai import OpenAI
+from app.llama.custom_openai import CustomOpenAI
 
 from app.config import Config
 from app.models.responses import Source
@@ -104,10 +105,21 @@ class ChatService:
             )
             
             # Create LLM with specified temperature
-            # Use the base LLM but update temperature
-            # This avoids re-validation of the model name
-            llm_with_temp = self.llm
-            llm_with_temp.temperature = temperature
+            # For custom API endpoints, use CustomOpenAI to avoid model validation
+            if self.config.openai_api_base:
+                llm_with_temp = CustomOpenAI(
+                    model=self.llm.model,
+                    temperature=temperature,
+                    api_key=self.config.openai_api_key,
+                    api_base=self.config.openai_api_base,
+                )
+            else:
+                llm_with_temp = OpenAI(
+                    model=self.llm.model,
+                    temperature=temperature,
+                    api_key=self.config.openai_api_key,
+                )
+
             
             # Create chat engine with condense_plus_context mode
             # This mode:

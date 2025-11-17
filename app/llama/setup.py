@@ -17,6 +17,7 @@ from llama_index.llms.openai import OpenAI
 from llama_index.vector_stores.postgres import PGVectorStore
 
 from app.config import Config
+from app.llama.custom_openai import CustomOpenAI
 
 
 def parse_db_url(db_url: str) -> dict:
@@ -75,20 +76,21 @@ def initialize_llm(config: Config) -> OpenAI:
         config: Application configuration
         
     Returns:
-        OpenAI: Configured LLM
+        OpenAI: Configured LLM (CustomOpenAI for custom endpoints)
     """
     kwargs = {
         "model": config.chat_model,
         "temperature": config.default_temperature,
         "api_key": config.openai_api_key,
-        "strict": False,  # Disable model validation for custom API endpoints
     }
     
-    # Add custom base URL if provided
+    # Use CustomOpenAI wrapper for custom API endpoints to bypass model validation
     if config.openai_api_base:
         kwargs["api_base"] = config.openai_api_base
-    
-    llm = OpenAI(**kwargs)
+        llm = CustomOpenAI(**kwargs)
+    else:
+        # Use standard OpenAI for official API
+        llm = OpenAI(**kwargs)
     
     return llm
 
