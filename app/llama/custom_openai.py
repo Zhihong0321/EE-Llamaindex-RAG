@@ -1,8 +1,7 @@
 """Custom OpenAI LLM wrapper that bypasses model validation for custom API endpoints."""
 
-from typing import Any, Optional
+from typing import Any
 from llama_index.llms.openai import OpenAI as LlamaIndexOpenAI
-from openai import OpenAI as OpenAIClient
 
 
 class CustomOpenAI(LlamaIndexOpenAI):
@@ -14,37 +13,15 @@ class CustomOpenAI(LlamaIndexOpenAI):
     
     def __init__(self, **kwargs: Any):
         """Initialize with model validation disabled."""
-        # Extract our custom parameters
-        api_base = kwargs.pop("api_base", None)
+        # Save the custom model name
+        custom_model = kwargs.get("model", "gpt-3.5-turbo")
         
-        # Initialize parent without validation
-        # We'll set the model name directly without going through validation
-        model = kwargs.get("model", "gpt-3.5-turbo")
+        # Temporarily replace with a valid model name for parent init
+        kwargs["model"] = "gpt-3.5-turbo"
         
-        # Create the underlying OpenAI client directly
-        client_kwargs = {
-            "api_key": kwargs.get("api_key"),
-        }
-        
-        if api_base:
-            client_kwargs["base_url"] = api_base
-        
-        # Initialize parent class
+        # Initialize parent class with valid model
         super().__init__(**kwargs)
         
-        # Override the client with our custom one
-        self._client = OpenAIClient(**client_kwargs)
-        self._aclient = None  # Will be created on demand
-        
-        # Force set the model name without validation
-        self._model = model
-    
-    @property
-    def model(self) -> str:
-        """Get model name."""
-        return self._model
-    
-    @model.setter
-    def model(self, value: str) -> None:
-        """Set model name without validation."""
-        self._model = value
+        # Now override with the actual custom model name
+        # This bypasses the validation that happens in __init__
+        object.__setattr__(self, "_model", custom_model)
