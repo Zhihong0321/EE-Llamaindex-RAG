@@ -38,12 +38,14 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Run Alembic migrations and start Uvicorn server with production settings
 # Use exec to ensure proper signal handling
+# Convert LOG_LEVEL to lowercase for uvicorn compatibility
 CMD alembic upgrade head && \
+    LOG_LEVEL_LOWER=$(echo "${LOG_LEVEL:-info}" | tr '[:upper:]' '[:lower:]') && \
     exec uvicorn app.main:app \
     --host 0.0.0.0 \
     --port ${PORT:-8000} \
     --workers ${WORKERS:-1} \
-    --log-level ${LOG_LEVEL:-info} \
+    --log-level $LOG_LEVEL_LOWER \
     --timeout-keep-alive 65 \
     --limit-concurrency 1000 \
     --backlog 2048
