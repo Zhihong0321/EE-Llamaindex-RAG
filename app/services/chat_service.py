@@ -104,11 +104,18 @@ class ChatService:
             )
             
             # Create LLM with specified temperature
-            llm_with_temp = OpenAI(
-                model=self.llm.model,
-                temperature=temperature,
-                api_key=self.config.openai_api_key,
-            )
+            llm_kwargs = {
+                "model": self.llm.model,
+                "temperature": temperature,
+                "api_key": self.config.openai_api_key,
+                "strict": False,  # Disable model validation for custom API endpoints
+            }
+            
+            # Add custom base URL if provided
+            if self.config.openai_api_base:
+                llm_kwargs["api_base"] = self.config.openai_api_base
+            
+            llm_with_temp = OpenAI(**llm_kwargs)
             
             # Create chat engine with condense_plus_context mode
             # This mode:
