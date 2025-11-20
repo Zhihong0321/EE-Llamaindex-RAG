@@ -17,6 +17,12 @@ class IngestResponse(BaseModel):
     status: str = Field(..., description="Ingestion status")
 
 
+class DeleteResponse(BaseModel):
+    """Response model for document deletion endpoint."""
+    document_id: str = Field(..., description="Unique document identifier")
+    status: str = Field(..., description="Deletion status")
+
+
 class Source(BaseModel):
     """Source information for retrieved document chunks."""
     document_id: str = Field(..., description="Document identifier")

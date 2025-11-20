@@ -41,6 +41,7 @@ class DocumentService:
         text: str,
         title: Optional[str] = None,
         source: Optional[str] = None,
+        vault_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         """Ingest document into vector store and save metadata.
@@ -59,6 +60,7 @@ class DocumentService:
             text: Document text content
             title: Optional document title
             source: Optional document source
+            vault_id: Optional vault identifier for multi-tenancy
             metadata: Optional additional metadata
             
         Returns:
@@ -75,6 +77,7 @@ class DocumentService:
             extra={
                 "document_id": document_id,
                 "title": title,
+                "vault_id": vault_id,
                 "text_length": len(text),
             }
         )
@@ -86,6 +89,7 @@ class DocumentService:
                 "document_id": document_id,
                 "title": title,
                 "source": source,
+                "vault_id": vault_id,
                 **metadata
             }
             
@@ -146,23 +150,34 @@ class DocumentService:
             )
             raise DocumentIngestError(document_id=document_id, reason=str(e)) from e
     
-    async def list_all(self) -> List[DocumentInfo]:
+    async def list_all(self, vault_id: Optional[str] = None) -> List[DocumentInfo]:
         """Retrieve all documents from database.
         
         Requirement 9.2: Retrieve all records from documents table.
         
+        Args:
+            vault_id: Optional vault identifier to filter documents
+        
         Returns:
             List[DocumentInfo]: List of all documents with metadata
         """
-        logger.debug("Listing all documents")
+        logger.debug("Listing all documents", extra={"vault_id": vault_id})
         
-        query = """
-            SELECT id, title, source, metadata_json, created_at, updated_at
-            FROM documents
-            ORDER BY created_at DESC
-        """
-        
-        rows = await self.db.fetch(query)
+        if vault_id:
+            query = """
+                SELECT id, title, source, metadata_json, created_at, updated_at
+                FROM documents
+                WHERE metadata_json->>'vault_id' = $1
+                ORDER BY created_at DESC
+            """
+            rows = await self.db.fetch(query, vault_id)
+        else:
+            query = """
+                SELECT id, title, source, metadata_json, created_at, updated_at
+                FROM documents
+                ORDER BY created_at DESC
+            """
+            rows = await self.db.fetch(query)
         
         documents = []
         for row in rows:
@@ -215,3 +230,59 @@ class DocumentService:
             created_at=row["created_at"],
             updated_at=row["updated_at"]
         )
+
+    async def delete(self, document_id: str) -> None:
+        """Delete document from vector store and database.
+        
+        Args:
+            document_id: Unique document identifier
+            
+        Raises:
+            DocumentNotFoundError: If document does not exist
+            Exception: If deletion fails
+        """
+        logger.info("Deleting document", extra={"document_id": document_id})
+        
+        # Check if document exists in database first
+        existing_doc = await self.get_by_id(document_id)
+        if not existing_doc:
+            raise DocumentNotFoundError(document_id=document_id)
+            
+        try:
+            # Delete from LlamaIndex vector store
+            # delete_ref_doc removes the document and all its nodes from the index
+            # delete_from_docstore=True ensures it's removed from the docstore if one is configured
+            self.index.delete_ref_doc(document_id, delete_from_docstore=True)
+            
+            logger.info(
+                "Document deleted from vector index",
+                extra={"document_id": document_id}
+            )
+            
+            # Delete from database
+            query = "DELETE FROM documents WHERE id = $1"
+            await self.db.execute(query, document_id)
+            
+            logger.info(
+                "Document metadata deleted from database",
+                extra={"document_id": document_id}
+            )
+            
+        except KeyError:
+            # LlamaIndex raises KeyError if doc_id not found in index
+            # We still want to proceed with DB deletion if it was in DB
+            logger.warning(
+                "Document not found in vector index during deletion",
+                extra={"document_id": document_id}
+            )
+            # Continue to delete from DB
+            query = "DELETE FROM documents WHERE id = $1"
+            await self.db.execute(query, document_id)
+            
+        except Exception as e:
+            logger.error(
+                "Document deletion failed",
+                extra={"document_id": document_id, "error": str(e)},
+                exc_info=True
+            )
+            raise

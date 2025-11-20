@@ -69,6 +69,7 @@ async def ingest_document(request: IngestRequest) -> IngestResponse:
             text=request.text,
             title=request.title,
             source=request.source,
+            vault_id=request.vault_id,
             metadata=request.metadata
         )
         

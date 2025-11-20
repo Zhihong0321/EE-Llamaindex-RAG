@@ -21,31 +21,25 @@ def test_health():
         return False
 
 def test_create_session():
-    """Test session creation."""
+    """Test session creation (sessions are auto-created, so we just generate an ID)."""
     print("\n=== Testing Session Creation ===")
-    try:
-        response = requests.post(f"{BASE_URL}/api/v1/sessions", timeout=10)
-        print(f"Status: {response.status_code}")
-        data = response.json()
-        print(f"Response: {json.dumps(data, indent=2)}")
-        return data.get("session_id") if response.status_code == 200 else None
-    except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        return None
+    import uuid
+    session_id = str(uuid.uuid4())
+    print(f"Generated session ID: {session_id}")
+    print("Note: Sessions are created automatically on first use")
+    return session_id
 
 def test_ingest_document(session_id):
     """Test document ingestion."""
     print("\n=== Testing Document Ingestion ===")
     payload = {
-        "content": "LlamaIndex is a data framework for LLM applications. It provides tools for ingesting, structuring, and accessing private or domain-specific data. It enables RAG (Retrieval-Augmented Generation) workflows.",
-        "metadata": {
-            "source": "production_test",
-            "title": "LlamaIndex Introduction - Production Test"
-        }
+        "text": "LlamaIndex is a data framework for LLM applications. It provides tools for ingesting, structuring, and accessing private or domain-specific data. It enables RAG (Retrieval-Augmented Generation) workflows.",
+        "title": "LlamaIndex Introduction - Production Test",
+        "source": "production_test"
     }
     try:
         response = requests.post(
-            f"{BASE_URL}/api/v1/ingest",
+            f"{BASE_URL}/ingest",
             params={"session_id": session_id},
             json=payload,
             timeout=30
@@ -61,14 +55,16 @@ def test_chat(session_id):
     """Test chat endpoint."""
     print("\n=== Testing Chat ===")
     payload = {
+        "session_id": session_id,
         "message": "What is LlamaIndex and what does it do?",
-        "temperature": 0.3,
-        "top_k": 3
+        "config": {
+            "temperature": 0.3,
+            "top_k": 3
+        }
     }
     try:
         response = requests.post(
-            f"{BASE_URL}/api/v1/chat",
-            params={"session_id": session_id},
+            f"{BASE_URL}/chat",
             json=payload,
             timeout=30
         )
@@ -81,7 +77,9 @@ def test_chat(session_id):
             sources = data.get("sources", [])
             print(f"\n📚 Sources returned: {len(sources)}")
             for i, source in enumerate(sources, 1):
-                print(f"  {i}. Score: {source.get('score', 'N/A'):.3f} - {source.get('metadata', {}).get('title', 'Untitled')}")
+                score = source.get('score', 0)
+                title = source.get('metadata', {}).get('title', 'Untitled')
+                print(f"  {i}. Score: {score:.3f} - {title}")
         
         return response.status_code == 200
     except Exception as e:
@@ -93,7 +91,7 @@ def test_get_documents(session_id):
     print("\n=== Testing Get Documents ===")
     try:
         response = requests.get(
-            f"{BASE_URL}/api/v1/documents",
+            f"{BASE_URL}/documents",
             params={"session_id": session_id},
             timeout=10
         )
@@ -123,14 +121,16 @@ def test_multi_turn_conversation(session_id):
     for i, question in enumerate(questions, 1):
         print(f"\n--- Turn {i}: {question} ---")
         payload = {
+            "session_id": session_id,
             "message": question,
-            "temperature": 0.3,
-            "top_k": 3
+            "config": {
+                "temperature": 0.3,
+                "top_k": 3
+            }
         }
         try:
             response = requests.post(
-                f"{BASE_URL}/api/v1/chat",
-                params={"session_id": session_id},
+                f"{BASE_URL}/chat",
                 json=payload,
                 timeout=30
             )

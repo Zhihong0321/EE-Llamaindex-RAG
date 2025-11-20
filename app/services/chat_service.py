@@ -8,6 +8,7 @@ and extracts source information from responses.
 from typing import List, Tuple
 
 from llama_index.core import VectorStoreIndex
+from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.llms import ChatMessage
 from llama_index.core.memory import ChatMemoryBuffer
@@ -52,7 +53,8 @@ class ChatService:
         chat_history: List[ChatMessage],
         top_k: int,
         temperature: float,
-        session_id: str = "unknown"
+        session_id: str = "unknown",
+        vault_id: str = None
     ) -> Tuple[str, List[Source]]:
         """Generate response using RAG with chat history.
         
@@ -121,6 +123,17 @@ class ChatService:
                 )
 
             
+            # Create filters if vault_id is provided
+            filters = None
+            if vault_id:
+                filters = MetadataFilters(
+                    filters=[ExactMatchFilter(key="vault_id", value=vault_id)]
+                )
+                logger.debug(
+                    "Applying vault filter",
+                    extra={"session_id": session_id, "vault_id": vault_id}
+                )
+
             # Create chat engine with condense_plus_context mode
             # This mode:
             # - Condenses conversation history into a standalone question
@@ -132,6 +145,7 @@ class ChatService:
                 memory=memory,
                 similarity_top_k=top_k,
                 llm=llm_with_temp,
+                filters=filters,
             )
             
             logger.debug(

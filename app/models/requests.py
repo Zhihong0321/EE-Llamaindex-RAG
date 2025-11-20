@@ -9,6 +9,7 @@ class IngestRequest(BaseModel):
     text: str = Field(..., min_length=1, description="Document text content")
     title: Optional[str] = Field(None, description="Document title")
     source: Optional[str] = Field(None, description="Document source")
+    vault_id: Optional[str] = Field(None, description="Vault ID for multi-tenancy isolation")
     metadata: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
         description="Additional metadata"
@@ -43,6 +44,7 @@ class ChatRequest(BaseModel):
     """Request model for chat endpoint."""
     session_id: str = Field(..., min_length=1, description="Session identifier")
     message: str = Field(..., min_length=1, description="User message")
+    vault_id: Optional[str] = Field(None, description="Vault ID for multi-tenancy filtering")
     config: Optional[ChatConfig] = Field(
         default_factory=ChatConfig,
         description="Optional chat configuration"

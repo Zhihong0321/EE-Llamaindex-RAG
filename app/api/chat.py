@@ -119,7 +119,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
             chat_history=chat_history,
             top_k=request.config.top_k,
             temperature=request.config.temperature,
-            session_id=request.session_id
+            session_id=request.session_id,
+            vault_id=request.vault_id
         )
         
         # Step 6: Save assistant message (Requirement 4.2)
