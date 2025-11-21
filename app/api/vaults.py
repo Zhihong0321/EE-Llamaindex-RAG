@@ -7,7 +7,8 @@ This module provides CRUD operations for vaults:
 - DELETE /vaults/{vault_id} - Delete vault
 """
 
-from fastapi import APIRouter, HTTPException, status, Response
+from fastapi import APIRouter, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 
 from app.models.requests import VaultCreateRequest
@@ -18,16 +19,6 @@ from app.logging_config import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter()
-
-
-@router.options("/vaults")
-@router.options("/vaults/{vault_id}")
-async def options_handler(response: Response):
-    """Handle CORS preflight requests."""
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return {"status": "ok"}
 
 # Service will be injected at startup
 _vault_service: VaultService = None
@@ -48,13 +39,9 @@ def set_vault_service(vault_service: VaultService):
     response_model=VaultResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new vault",
-    description="Create a new vault for organizing documents. Vault names must be unique.",
-    responses={
-        201: {"description": "Vault created successfully"},
-        409: {"description": "Vault with same name already exists"},
-    }
+    description="Create a new vault for organizing documents. Vault names must be unique."
 )
-async def create_vault(request: VaultCreateRequest, response: Response):
+async def create_vault(request: VaultCreateRequest):
     """Create a new vault.
     
     Args:
@@ -68,11 +55,6 @@ async def create_vault(request: VaultCreateRequest, response: Response):
         HTTPException 500: If creation fails
     """
     logger.info("POST /vaults", extra={"name": request.name})
-    
-    # Add CORS headers explicitly
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
     
     try:
         vault = await _vault_service.create(
@@ -111,7 +93,7 @@ async def create_vault(request: VaultCreateRequest, response: Response):
     summary="List all vaults",
     description="Retrieve all vaults with document counts."
 )
-async def list_vaults(response: Response):
+async def list_vaults():
     """List all vaults.
     
     Returns:
@@ -121,11 +103,6 @@ async def list_vaults(response: Response):
         HTTPException 500: If listing fails
     """
     logger.info("GET /vaults")
-    
-    # Add CORS headers explicitly
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
     
     try:
         vaults = await _vault_service.list_all()
@@ -160,7 +137,7 @@ async def list_vaults(response: Response):
     summary="Get vault by ID",
     description="Retrieve a single vault by its ID with document count."
 )
-async def get_vault(vault_id: str, response: Response):
+async def get_vault(vault_id: str):
     """Get vault by ID.
     
     Args:
@@ -174,11 +151,6 @@ async def get_vault(vault_id: str, response: Response):
         HTTPException 500: If retrieval fails
     """
     logger.info("GET /vaults/{vault_id}", extra={"vault_id": vault_id})
-    
-    # Add CORS headers explicitly
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
     
     try:
         vault = await _vault_service.get_by_id(vault_id)
@@ -215,7 +187,7 @@ async def get_vault(vault_id: str, response: Response):
     summary="Delete vault",
     description="Delete a vault and all its associated documents (cascade delete)."
 )
-async def delete_vault(vault_id: str, response: Response):
+async def delete_vault(vault_id: str):
     """Delete vault and all associated documents.
     
     Args:
@@ -229,11 +201,6 @@ async def delete_vault(vault_id: str, response: Response):
         HTTPException 500: If deletion fails
     """
     logger.info("DELETE /vaults/{vault_id}", extra={"vault_id": vault_id})
-    
-    # Add CORS headers explicitly
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
     
     try:
         await _vault_service.delete(vault_id)
