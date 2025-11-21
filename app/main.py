@@ -87,6 +87,15 @@ async def lifespan(app: FastAPI):
             }
         )
         
+        # Log CORS configuration
+        cors_origins = config.get_cors_origins_list()
+        logger.info(
+            "CORS configured",
+            extra={
+                "origins": cors_origins if cors_origins != ["*"] else "all origins (development only)"
+            }
+        )
+        
         # Initialize database connection pool
         logger.info("Connecting to database...")
         try:
@@ -171,13 +180,21 @@ app = FastAPI(
 # Add request logging middleware (Requirement 10.4)
 app.add_middleware(RequestLoggingMiddleware)
 
-# Configure CORS - use permissive defaults, will be overridden by environment config
+# Configure CORS
+# Load CORS origins from environment or use defaults
+import os
+cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,https://llama-chatbot-production.up.railway.app")
+cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
+# Note: When allow_credentials=True, allow_origins cannot be ["*"]
+# You must specify exact origins. Set CORS_ORIGINS environment variable.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Will be restricted in production via environment
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
     max_age=3600,  # Cache preflight requests for 1 hour
 )
 
