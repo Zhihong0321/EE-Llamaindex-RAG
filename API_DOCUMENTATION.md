@@ -35,7 +35,109 @@ Check if the API is running and healthy.
 
 ---
 
-### 2. Document Ingestion
+### 2. Vault Management
+
+#### 2.1 Create Vault
+```
+POST /vaults
+```
+Create a new vault for organizing documents.
+
+**Request Body:**
+```json
+{
+  "name": "My Vault",
+  "description": "Optional description"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "vault_id": "uuid-here",
+  "name": "My Vault",
+  "description": "Optional description",
+  "created_at": "2025-11-21T10:30:00Z",
+  "document_count": 0
+}
+```
+
+**Error Responses:**
+- `409 Conflict`: Vault with same name already exists
+- `422 Unprocessable Entity`: Invalid request (missing name)
+
+---
+
+#### 2.2 List All Vaults
+```
+GET /vaults
+```
+Retrieve all vaults with document counts.
+
+**Response (200 OK):**
+```json
+[
+  {
+    "vault_id": "uuid-1",
+    "name": "Vault 1",
+    "description": "First vault",
+    "created_at": "2025-11-21T10:30:00Z",
+    "document_count": 5
+  },
+  {
+    "vault_id": "uuid-2",
+    "name": "Vault 2",
+    "description": "Second vault",
+    "created_at": "2025-11-21T11:00:00Z",
+    "document_count": 3
+  }
+]
+```
+
+---
+
+#### 2.3 Get Single Vault
+```
+GET /vaults/{vault_id}
+```
+Retrieve a specific vault by ID.
+
+**Response (200 OK):**
+```json
+{
+  "vault_id": "uuid-here",
+  "name": "My Vault",
+  "description": "Optional description",
+  "created_at": "2025-11-21T10:30:00Z",
+  "document_count": 5
+}
+```
+
+**Error Responses:**
+- `404 Not Found`: Vault does not exist
+
+---
+
+#### 2.4 Delete Vault
+```
+DELETE /vaults/{vault_id}
+```
+Delete a vault and all its associated documents (cascade delete).
+
+**Response (200 OK):**
+```json
+{
+  "vault_id": "uuid-here",
+  "status": "deleted"
+}
+```
+
+**Error Responses:**
+- `404 Not Found`: Vault does not exist
+
+---
+
+### 3. Document Ingestion
 ```
 POST /ingest
 ```
@@ -44,10 +146,11 @@ Upload and process documents for RAG retrieval.
 **Request Body:**
 ```json
 {
-  "content": "Your document content here...",
+  "text": "Your document content here...",
+  "title": "Document Title",
+  "source": "source.pdf",
+  "vault_id": "optional-vault-uuid",
   "metadata": {
-    "title": "Document Title",
-    "source": "source.pdf",
     "author": "John Doe"
   }
 }
@@ -57,18 +160,17 @@ Upload and process documents for RAG retrieval.
 ```json
 {
   "document_id": "uuid-here",
-  "status": "ingested",
-  "chunks_created": 5,
-  "metadata": {
-    "title": "Document Title",
-    "source": "source.pdf"
-  }
+  "status": "indexed"
 }
 ```
 
+**Notes:**
+- `vault_id` is optional. If provided, the vault must exist (returns 404 if not).
+- Documents are automatically chunked and embedded.
+
 ---
 
-### 3. Chat (Query)
+### 4. Chat (Query)
 ```
 POST /chat
 ```
@@ -77,27 +179,35 @@ Send a message and get an AI-generated response based on ingested documents.
 **Request Body:**
 ```json
 {
+  "session_id": "session-uuid",
   "message": "What is the main topic of the documents?",
-  "session_id": "optional-session-uuid",
-  "stream": false
+  "vault_id": "optional-vault-uuid",
+  "config": {
+    "top_k": 5,
+    "temperature": 0.3
+  }
 }
 ```
 
-**Response (Non-streaming):**
+**Response:**
 ```json
 {
-  "response": "Based on the documents, the main topic is...",
   "session_id": "uuid-here",
+  "answer": "Based on the documents, the main topic is...",
   "sources": [
     {
       "document_id": "doc-uuid",
-      "content": "Relevant excerpt...",
-      "score": 0.95,
-      "metadata": {
-        "title": "Document Title"
-      }
+      "title": "Document Title",
+      "snippet": "Relevant excerpt...",
+      "score": 0.95
     }
-  ],
+  ]
+}
+```
+
+**Notes:**
+- `vault_id` is optional. If provided, only documents in that vault are used for context.
+- `config` is optional with defaults: `top_k=5`, `temperature=0.3`
   "message_id": "msg-uuid"
 }
 ```

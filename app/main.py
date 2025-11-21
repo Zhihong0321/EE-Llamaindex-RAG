@@ -26,6 +26,7 @@ from app.services.session_service import SessionService
 from app.services.message_service import MessageService
 from app.services.document_service import DocumentService
 from app.services.chat_service import ChatService
+from app.services.vault_service import VaultService, VaultNotFoundError, VaultAlreadyExistsError
 from app.logging_config import setup_logging, get_logger
 from app.middleware import RequestLoggingMiddleware
 from app.exceptions import (
@@ -40,7 +41,7 @@ from app.exceptions import (
 )
 
 # Import API routers
-from app.api import health, ingest, chat, documents
+from app.api import health, ingest, chat, documents, vaults
 
 
 # Logger will be initialized after config is loaded
@@ -118,6 +119,7 @@ async def lifespan(app: FastAPI):
         message_service = MessageService(db)
         document_service = DocumentService(db, index)
         chat_service = ChatService(index, llm, config)
+        vault_service = VaultService(db)
         logger.info("Services initialized")
         
         # Wire services to API routers
@@ -125,6 +127,7 @@ async def lifespan(app: FastAPI):
         ingest.set_document_service(document_service)
         chat.set_services(session_service, message_service, chat_service, config)
         documents.set_document_service(document_service)
+        vaults.set_vault_service(vault_service)
         logger.info("Services wired to API routers")
         
         logger.info(
@@ -191,6 +194,9 @@ app.include_router(chat.router, tags=["chat"])
 
 # Requirement 9.1: Documents listing endpoint (optional feature)
 app.include_router(documents.router, tags=["documents"])
+
+# Vault management endpoints
+app.include_router(vaults.router, tags=["vaults"])
 
 
 # Exception Handlers (Requirements 10.1, 10.2, 10.3, 10.4)
@@ -282,6 +288,52 @@ async def document_not_found_handler(request: Request, exc: DocumentNotFoundErro
         content={
             "error": exc.message,
             "detail": f"Document {exc.document_id} does not exist",
+            "code": exc.code
+        }
+    )
+
+
+@app.exception_handler(VaultNotFoundError)
+async def vault_not_found_handler(request: Request, exc: VaultNotFoundError):
+    """Handle vault not found errors.
+    
+    Returns 404 status code.
+    """
+    logger.warning(
+        "Vault not found",
+        extra={
+            "vault_id": exc.vault_id,
+            "path": request.url.path,
+        }
+    )
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={
+            "error": exc.message,
+            "detail": f"Vault {exc.vault_id} does not exist",
+            "code": exc.code
+        }
+    )
+
+
+@app.exception_handler(VaultAlreadyExistsError)
+async def vault_already_exists_handler(request: Request, exc: VaultAlreadyExistsError):
+    """Handle vault already exists errors.
+    
+    Returns 409 status code.
+    """
+    logger.warning(
+        "Vault already exists",
+        extra={
+            "name": exc.name,
+            "path": request.url.path,
+        }
+    )
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={
+            "error": exc.message,
+            "detail": f"Vault with name '{exc.name}' already exists",
             "code": exc.code
         }
     )
@@ -520,6 +572,7 @@ async def root():
             "ingest": "/ingest",
             "chat": "/chat",
             "documents": "/documents",
+            "vaults": "/vaults",
             "docs": "/docs"
         }
     }

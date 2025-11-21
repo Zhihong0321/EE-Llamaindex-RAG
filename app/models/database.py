@@ -41,7 +41,20 @@ class DocumentInfo(BaseModel):
     id: str
     title: Optional[str] = None
     source: Optional[str] = None
+    vault_id: Optional[str] = None
     metadata_json: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class Vault(BaseModel):
+    """Vault model for document organization."""
+    vault_id: str
+    name: str
+    description: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

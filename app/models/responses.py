@@ -55,3 +55,18 @@ class DocumentsResponse(BaseModel):
         default_factory=list,
         description="List of documents"
     )
+
+
+class VaultResponse(BaseModel):
+    """Response model for vault operations."""
+    vault_id: str = Field(..., description="Vault identifier")
+    name: str = Field(..., description="Vault name")
+    description: Optional[str] = Field(None, description="Vault description")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    document_count: int = Field(default=0, description="Number of documents in vault")
+
+
+class VaultDeleteResponse(BaseModel):
+    """Response model for vault deletion."""
+    vault_id: str = Field(..., description="Vault identifier")
+    status: str = Field(..., description="Deletion status")

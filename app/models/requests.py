@@ -65,3 +65,17 @@ class ChatRequest(BaseModel):
         if not v.strip():
             raise ValueError("Message cannot be empty or whitespace only")
         return v
+
+
+class VaultCreateRequest(BaseModel):
+    """Request model for vault creation."""
+    name: str = Field(..., min_length=1, description="Vault name")
+    description: Optional[str] = Field(None, description="Vault description")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_not_empty(cls, v: str) -> str:
+        """Ensure name is not just whitespace."""
+        if not v.strip():
+            raise ValueError("Name cannot be empty or whitespace only")
+        return v.strip()

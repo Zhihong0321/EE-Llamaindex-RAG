@@ -121,8 +121,8 @@ class DocumentService:
             now = datetime.utcnow()
             
             query = """
-                INSERT INTO documents (id, title, source, metadata_json, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO documents (id, title, source, vault_id, metadata_json, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
             """
             
             await self.db.execute(
@@ -130,6 +130,7 @@ class DocumentService:
                 document_id,
                 title,
                 source,
+                vault_id,
                 json.dumps(metadata),
                 now,
                 now
@@ -165,15 +166,15 @@ class DocumentService:
         
         if vault_id:
             query = """
-                SELECT id, title, source, metadata_json, created_at, updated_at
+                SELECT id, title, source, vault_id, metadata_json, created_at, updated_at
                 FROM documents
-                WHERE metadata_json->>'vault_id' = $1
+                WHERE vault_id = $1
                 ORDER BY created_at DESC
             """
             rows = await self.db.fetch(query, vault_id)
         else:
             query = """
-                SELECT id, title, source, metadata_json, created_at, updated_at
+                SELECT id, title, source, vault_id, metadata_json, created_at, updated_at
                 FROM documents
                 ORDER BY created_at DESC
             """
@@ -185,6 +186,7 @@ class DocumentService:
                 id=row["id"],
                 title=row["title"],
                 source=row["source"],
+                vault_id=row["vault_id"],
                 metadata_json=json.loads(row["metadata_json"]) if row["metadata_json"] else {},
                 created_at=row["created_at"],
                 updated_at=row["updated_at"]
@@ -209,7 +211,7 @@ class DocumentService:
         logger.debug("Retrieving document by ID", extra={"document_id": document_id})
         
         query = """
-            SELECT id, title, source, metadata_json, created_at, updated_at
+            SELECT id, title, source, vault_id, metadata_json, created_at, updated_at
             FROM documents
             WHERE id = $1
         """
@@ -226,6 +228,7 @@ class DocumentService:
             id=row["id"],
             title=row["title"],
             source=row["source"],
+            vault_id=row["vault_id"],
             metadata_json=json.loads(row["metadata_json"]) if row["metadata_json"] else {},
             created_at=row["created_at"],
             updated_at=row["updated_at"]
