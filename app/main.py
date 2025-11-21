@@ -176,6 +176,15 @@ app = FastAPI(
 )
 
 
+# Add response middleware to ensure CORS headers on all responses
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
 # Configure middleware (must be done before app starts)
 # Add request logging middleware (Requirement 10.4)
 app.add_middleware(RequestLoggingMiddleware)
@@ -205,17 +214,8 @@ app.include_router(chat.router, tags=["chat"])
 # Requirement 9.1: Documents listing endpoint (optional feature)
 app.include_router(documents.router, tags=["documents"])
 
-# Vault management endpoints with CORS
+# Vault management endpoints
 app.include_router(vaults.router, tags=["vaults"])
-
-# Add response middleware to ensure CORS headers on all responses
-@app.middleware("http")
-async def add_cors_headers(request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
 
 
 # Exception Handlers (Requirements 10.1, 10.2, 10.3, 10.4)
