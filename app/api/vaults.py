@@ -54,7 +54,7 @@ async def create_vault(request: VaultCreateRequest):
         HTTPException 409: If vault with same name already exists
         HTTPException 500: If creation fails
     """
-    logger.info("POST /vaults", extra={"name": request.name})
+    logger.info("POST /vaults", extra={"vault_name": request.name})
     
     try:
         vault = await _vault_service.create(
