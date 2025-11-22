@@ -96,6 +96,18 @@ async def lifespan(app: FastAPI):
             }
         )
         
+        # Run database migrations
+        logger.info("Running database migrations...")
+        try:
+            from alembic.config import Config as AlembicConfig
+            from alembic import command
+            alembic_cfg = AlembicConfig("alembic.ini")
+            alembic_cfg.set_main_option("sqlalchemy.url", config.db_url)
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Database migrations completed")
+        except Exception as e:
+            logger.warning(f"Migration warning (may be already applied): {e}")
+        
         # Initialize database connection pool
         logger.info("Connecting to database...")
         try:
