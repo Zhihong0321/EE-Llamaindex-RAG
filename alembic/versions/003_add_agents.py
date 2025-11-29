@@ -20,9 +20,9 @@ def upgrade() -> None:
     """Create agents table."""
     op.execute("""
         CREATE TABLE IF NOT EXISTS agents (
-            agent_id UUID PRIMARY KEY,
+            agent_id TEXT PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
-            vault_id UUID NOT NULL REFERENCES vaults(vault_id) ON DELETE CASCADE,
+            vault_id TEXT NOT NULL REFERENCES vaults(vault_id) ON DELETE CASCADE,
             system_prompt TEXT NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT NOW(),
             CONSTRAINT agents_name_vault_unique UNIQUE (name, vault_id)
