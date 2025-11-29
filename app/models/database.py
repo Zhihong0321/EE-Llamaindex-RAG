@@ -60,3 +60,15 @@ class Vault(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class Agent(BaseModel):
+    """Agent model for AI agent configurations."""
+    agent_id: str
+    name: str
+    vault_id: str
+    system_prompt: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

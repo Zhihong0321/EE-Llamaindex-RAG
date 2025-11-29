@@ -70,3 +70,18 @@ class VaultDeleteResponse(BaseModel):
     """Response model for vault deletion."""
     vault_id: str = Field(..., description="Vault identifier")
     status: str = Field(..., description="Deletion status")
+
+
+class AgentResponse(BaseModel):
+    """Response model for agent operations."""
+    agent_id: str = Field(..., description="Agent identifier")
+    name: str = Field(..., description="Agent name")
+    vault_id: str = Field(..., description="Associated vault ID")
+    system_prompt: str = Field(..., description="System prompt for the agent")
+    created_at: datetime = Field(..., description="Creation timestamp")
+
+
+class AgentDeleteResponse(BaseModel):
+    """Response model for agent deletion."""
+    success: bool = Field(..., description="Deletion success status")
+    message: str = Field(..., description="Deletion message")

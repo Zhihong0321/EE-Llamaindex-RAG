@@ -79,3 +79,18 @@ class VaultCreateRequest(BaseModel):
         if not v.strip():
             raise ValueError("Name cannot be empty or whitespace only")
         return v.strip()
+
+
+class AgentCreateRequest(BaseModel):
+    """Request model for agent creation."""
+    name: str = Field(..., min_length=1, description="Agent name")
+    vault_id: str = Field(..., min_length=1, description="Associated vault ID")
+    system_prompt: str = Field(..., min_length=1, description="System prompt for the agent")
+
+    @field_validator("name", "vault_id", "system_prompt")
+    @classmethod
+    def validate_not_empty(cls, v: str) -> str:
+        """Ensure fields are not just whitespace."""
+        if not v.strip():
+            raise ValueError("Field cannot be empty or whitespace only")
+        return v.strip()

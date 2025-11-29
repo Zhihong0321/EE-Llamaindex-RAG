@@ -27,6 +27,7 @@ from app.services.message_service import MessageService
 from app.services.document_service import DocumentService
 from app.services.chat_service import ChatService
 from app.services.vault_service import VaultService, VaultNotFoundError, VaultAlreadyExistsError
+from app.services.agent_service import AgentService, AgentNotFoundError
 from app.logging_config import setup_logging, get_logger
 from app.middleware import RequestLoggingMiddleware
 from app.exceptions import (
@@ -41,7 +42,7 @@ from app.exceptions import (
 )
 
 # Import API routers
-from app.api import health, ingest, chat, documents, vaults
+from app.api import health, ingest, chat, documents, vaults, agents
 
 
 # Logger will be initialized after config is loaded
@@ -141,6 +142,7 @@ async def lifespan(app: FastAPI):
         document_service = DocumentService(db, index)
         chat_service = ChatService(index, llm, config)
         vault_service = VaultService(db)
+        agent_service = AgentService(db)
         logger.info("Services initialized")
         
         # Wire services to API routers
@@ -149,6 +151,7 @@ async def lifespan(app: FastAPI):
         chat.set_services(session_service, message_service, chat_service, config)
         documents.set_document_service(document_service)
         vaults.set_vault_service(vault_service)
+        agents.set_agent_service(agent_service)
         logger.info("Services wired to API routers")
         
         logger.info(
@@ -228,6 +231,9 @@ app.include_router(documents.router, tags=["documents"])
 
 # Vault management endpoints
 app.include_router(vaults.router, tags=["vaults"])
+
+# Agent management endpoints
+app.include_router(agents.router, tags=["agents"])
 
 
 # Exception Handlers (Requirements 10.1, 10.2, 10.3, 10.4)
@@ -365,6 +371,29 @@ async def vault_already_exists_handler(request: Request, exc: VaultAlreadyExists
         content={
             "error": exc.message,
             "detail": f"Vault with name '{exc.name}' already exists",
+            "code": exc.code
+        }
+    )
+
+
+@app.exception_handler(AgentNotFoundError)
+async def agent_not_found_handler(request: Request, exc: AgentNotFoundError):
+    """Handle agent not found errors.
+    
+    Returns 404 status code.
+    """
+    logger.warning(
+        "Agent not found",
+        extra={
+            "agent_id": exc.agent_id,
+            "path": request.url.path,
+        }
+    )
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={
+            "error": exc.message,
+            "detail": f"Agent {exc.agent_id} does not exist",
             "code": exc.code
         }
     )
@@ -604,6 +633,7 @@ async def root():
             "chat": "/chat",
             "documents": "/documents",
             "vaults": "/vaults",
+            "agents": "/agents",
             "docs": "/docs"
         }
     }

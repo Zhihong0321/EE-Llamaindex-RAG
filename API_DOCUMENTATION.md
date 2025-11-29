@@ -566,3 +566,213 @@ For issues or questions:
 
 **Last Updated**: November 17, 2025
 **API Version**: 0.1.0
+
+
+---
+
+### 3. Agent Management
+
+#### 3.1 Create Agent
+```
+POST /agents
+```
+Create a new AI agent configuration associated with a vault.
+
+**Request Body:**
+```json
+{
+  "name": "Customer Support Agent",
+  "vault_id": "uuid-of-vault",
+  "system_prompt": "You are a helpful customer support agent. Be polite and professional."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "agent_id": "uuid-here",
+  "name": "Customer Support Agent",
+  "vault_id": "uuid-of-vault",
+  "system_prompt": "You are a helpful customer support agent. Be polite and professional.",
+  "created_at": "2025-11-29T10:30:00Z"
+}
+```
+
+**Error Responses:**
+- `422 Unprocessable Entity`: Invalid request (missing required fields)
+- `500 Internal Server Error`: Failed to create agent
+
+---
+
+#### 3.2 List All Agents
+```
+GET /agents
+```
+Retrieve all agents, optionally filtered by vault.
+
+**Query Parameters:**
+- `vault_id` (optional): Filter agents by vault ID
+
+**Examples:**
+```
+GET /agents                          # Get all agents
+GET /agents?vault_id=uuid-of-vault   # Get agents for specific vault
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "agent_id": "uuid-1",
+    "name": "Customer Support Agent",
+    "vault_id": "uuid-of-vault",
+    "system_prompt": "You are a helpful customer support agent...",
+    "created_at": "2025-11-29T10:30:00Z"
+  },
+  {
+    "agent_id": "uuid-2",
+    "name": "Technical Support Agent",
+    "vault_id": "uuid-of-vault",
+    "system_prompt": "You are a technical support specialist...",
+    "created_at": "2025-11-29T11:00:00Z"
+  }
+]
+```
+
+---
+
+#### 3.3 Get Single Agent
+```
+GET /agents/{agent_id}
+```
+Retrieve a specific agent by ID.
+
+**Response (200 OK):**
+```json
+{
+  "agent_id": "uuid-here",
+  "name": "Customer Support Agent",
+  "vault_id": "uuid-of-vault",
+  "system_prompt": "You are a helpful customer support agent. Be polite and professional.",
+  "created_at": "2025-11-29T10:30:00Z"
+}
+```
+
+**Error Responses:**
+- `404 Not Found`: Agent does not exist
+
+---
+
+#### 3.4 Delete Agent
+```
+DELETE /agents/{agent_id}
+```
+Delete an agent configuration.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Agent deleted successfully"
+}
+```
+
+**Error Responses:**
+- `404 Not Found`: Agent does not exist
+- `500 Internal Server Error`: Failed to delete agent
+
+---
+
+## 🔄 Agent Workflow Example
+
+Here's a typical workflow for using agents:
+
+```javascript
+// 1. Create a vault
+const vault = await fetch('http://localhost:8000/vaults', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Customer Support KB',
+    description: 'Knowledge base for customer support'
+  })
+}).then(r => r.json());
+
+// 2. Ingest documents into the vault
+await fetch('http://localhost:8000/ingest', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    text: 'Product documentation content...',
+    title: 'Product Guide',
+    vault_id: vault.vault_id
+  })
+});
+
+// 3. Create an agent for this vault
+const agent = await fetch('http://localhost:8000/agents', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Support Bot',
+    vault_id: vault.vault_id,
+    system_prompt: 'You are a helpful support agent. Use the knowledge base to answer questions.'
+  })
+}).then(r => r.json());
+
+// 4. Use the agent in chat (with vault filtering)
+const response = await fetch('http://localhost:8000/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    session_id: 'user-session-123',
+    message: 'How do I reset my password?',
+    vault_id: vault.vault_id  // Filter to only this vault's documents
+  })
+}).then(r => r.json());
+
+console.log(response.answer);
+```
+
+---
+
+## 📝 Notes for Frontend Team
+
+### Agent Management
+- **Agents are tied to vaults**: Each agent must be associated with a vault
+- **Cascade deletion**: When a vault is deleted, all its agents are automatically deleted
+- **System prompts**: Define the agent's personality and behavior
+- **Filtering**: Use `vault_id` query parameter to get agents for a specific vault
+- **No authentication**: Currently no auth required (add if needed)
+
+### Best Practices
+1. **Create vaults first**: Always create a vault before creating agents
+2. **Meaningful names**: Use descriptive names for agents (e.g., "Customer Support Bot", "Technical Assistant")
+3. **Clear prompts**: Write clear system prompts that define the agent's role and behavior
+4. **Error handling**: Always handle 404 errors when fetching/deleting agents
+5. **Validation**: Frontend should validate that vault_id exists before creating an agent
+
+### Testing
+Use the provided test script to verify the implementation:
+```bash
+python test_agents_api.py
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Agent Creation Fails
+- **Check vault exists**: Ensure the `vault_id` references an existing vault
+- **Validate fields**: All fields (name, vault_id, system_prompt) are required
+- **Check logs**: Server logs will show detailed error messages
+
+### Agent Not Found (404)
+- **Verify agent_id**: Ensure you're using the correct UUID
+- **Check deletion**: Agent may have been deleted or vault was deleted (cascade)
+
+### Empty Agent List
+- **Check vault_id**: If filtering by vault, ensure the vault has agents
+- **Verify creation**: Ensure agents were successfully created
+
+---
